@@ -139,32 +139,35 @@ if (params.get('sorteo') === 'celucenter2026') {
 }
 
 /* ─── BÚSQUEDA ─── */
+let currentResults = [];
+
 function normalizar(s) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
 }
 
 function buscar(q) {
   const res = document.getElementById('results');
-  if (q.trim().length < 2) { res.innerHTML = ''; return; }
+  if (q.trim().length < 2) { res.innerHTML = ''; currentResults = []; return; }
   const qn = normalizar(q);
   const words = qn.split(' ').filter(Boolean);
-  const matches = Object.keys(DATOS).filter(nombre => {
+  currentResults = Object.keys(DATOS).filter(nombre => {
     const nn = normalizar(nombre);
     return words.every(w => nn.includes(w));
   });
-  if (!matches.length) {
+  if (!currentResults.length) {
     res.innerHTML = '<div class="no-results">No encontrado — intenta con apellido o sucursal</div>';
     return;
   }
-  res.innerHTML = matches.map(n =>
-    `<div class="result-item" onclick="mostrarTicket(${JSON.stringify(n)})">
+  res.innerHTML = currentResults.map((n, i) =>
+    `<div class="result-item" onclick="mostrarTicket(${i})">
       <div class="rname">${n}</div>
       <div class="rcount">${DATOS[n].length} boleto${DATOS[n].length > 1 ? 's' : ''}</div>
     </div>`
   ).join('');
 }
 
-function mostrarTicket(nombre) {
+function mostrarTicket(idx) {
+  const nombre = currentResults[idx];
   document.getElementById('page-registro').style.display = 'none';
   const ticket = document.getElementById('page-ticket');
   ticket.style.display = 'block';
