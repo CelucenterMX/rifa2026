@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rifa CeluCenter 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #111; color: #fff; min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: #FFD700; padding: 16px; text-align: center; }
+  .header h1 { color: #111; font-size: 1.4rem; font-weight: 800; }
+  .header p  { color: #333; font-size: 0.85rem; margin-top: 2px; }
+
+  /* REGISTRO */
+  #page-registro { padding: 24px 20px; max-width: 480px; margin: 0 auto; }
+  #page-registro h2 { font-size: 1.1rem; margin-bottom: 16px; color: #FFD700; }
+  .search-box { width: 100%; padding: 14px 16px; font-size: 1rem; border-radius: 12px;
+                border: 2px solid #333; background: #1a1a1a; color: #fff; outline: none; }
+  .search-box:focus { border-color: #FFD700; }
+  .results { margin-top: 12px; }
+  .result-item { background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
+                 padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+                 transition: border-color .2s; }
+  .result-item:hover { border-color: #FFD700; }
+  .result-item .rname { font-weight: 700; font-size: 1rem; }
+  .result-item .rcount { color: #aaa; font-size: 0.85rem; margin-top: 2px; }
+  .no-results { color: #888; text-align: center; padding: 20px; }
+
+  /* TICKET CARD */
+  #page-ticket { display: none; padding: 24px 20px; max-width: 480px; margin: 0 auto; text-align: center; }
+  .ticket-card { background: linear-gradient(135deg, #1a1a1a, #222); border: 2px solid #FFD700;
+                 border-radius: 20px; padding: 28px 20px; }
+  .ticket-card .tc-name { font-size: 1.2rem; font-weight: 800; color: #FFD700; margin-bottom: 6px; }
+  .ticket-card .tc-sub  { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+  .boletos-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0; }
+  .boleto-num { background: #FFD700; color: #111; font-weight: 900; font-size: 1.1rem;
+                width: 52px; height: 52px; border-radius: 50%; display: flex;
+                align-items: center; justify-content: center; }
+  .btn-volver { margin-top: 20px; background: transparent; border: 1px solid #444;
+                color: #aaa; padding: 10px 24px; border-radius: 20px; cursor: pointer;
+                font-size: 0.9rem; }
+  .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
+
+  /* SORTEO */
+  #page-sorteo { display: none; padding: 20px; max-width: 700px; margin: 0 auto; text-align: center; }
+  .sorteo-display { background: #1a1a1a; border: 3px solid #FFD700; border-radius: 24px;
+                    padding: 40px 20px; margin-bottom: 24px; }
+  .sorteo-numero { font-size: 6rem; font-weight: 900; color: #FFD700; line-height: 1;
+                   min-height: 110px; display: flex; align-items: center; justify-content: center; }
+  .sorteo-nombre { font-size: 1.6rem; font-weight: 700; color: #fff; margin-top: 12px;
+                   min-height: 40px; }
+  .sorteo-boletos-restantes { color: #888; font-size: 0.9rem; margin-top: 8px; }
+  .btn-sortear { background: #FFD700; color: #111; font-size: 1.3rem; font-weight: 900;
+                 padding: 18px 48px; border-radius: 50px; border: none; cursor: pointer;
+                 transition: transform .1s; width: 100%; max-width: 340px; }
+  .btn-sortear:active { transform: scale(0.97); }
+  .btn-sortear:disabled { background: #444; color: #666; cursor: not-allowed; }
+  .historial { margin-top: 20px; text-align: left; }
+  .historial h3 { color: #888; font-size: 0.85rem; margin-bottom: 8px; }
+  .hist-item { background: #1a1a1a; border-radius: 8px; padding: 8px 14px; margin-bottom: 6px;
+               display: flex; justify-content: space-between; font-size: 0.9rem; }
+  .hist-num { color: #FFD700; font-weight: 700; }
+  .btn-reset { background: transparent; border: 1px solid #555; color: #666; padding: 8px 20px;
+               border-radius: 20px; cursor: pointer; font-size: 0.8rem; margin-top: 12px; }
+
+  /* SPINNER ANIMATION */
+  @keyframes spin {
+    0%  { content: "0"; }
+    10% { content: "1"; }
+    20% { content: "2"; }
+  }
+  .spinning { animation: numSpin 0.08s steps(1) infinite; }
+  @keyframes numSpin {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎟️ Rifa CeluCenter 2026</h1>
+  <p>Junta Mensual — Celucenter</p>
+</div>
+
+<!-- PÁGINA REGISTRO -->
+<div id="page-registro">
+  <h2>Busca tu nombre</h2>
+  <input type="text" class="search-box" id="searchInput"
+         placeholder="Escribe tu nombre..." autocomplete="off"
+         oninput="buscar(this.value)">
+  <div class="results" id="results"></div>
+</div>
+
+<!-- PÁGINA TICKET -->
+<div id="page-ticket">
+  <div class="ticket-card">
+    <div class="tc-name" id="tc-name"></div>
+    <div class="tc-sub">Tus boletos para la rifa</div>
+    <div class="boletos-grid" id="tc-boletos"></div>
+    <div style="color:#888;font-size:.8rem;margin-top:12px">
+      ¡Guarda una captura de pantalla!
+    </div>
+  </div>
+  <button class="btn-volver" onclick="volverRegistro()">← Volver a buscar</button>
+</div>
+
+<!-- PÁGINA SORTEO (admin) -->
+<div id="page-sorteo">
+  <div class="sorteo-display">
+    <div class="sorteo-numero" id="sort-num">—</div>
+    <div class="sorteo-nombre" id="sort-nombre"></div>
+    <div class="sorteo-boletos-restantes" id="sort-restantes"></div>
+  </div>
+  <button class="btn-sortear" id="btn-sortear" onclick="sortear()">🎯 SORTEAR</button>
+  <div class="historial" id="historial"></div>
+  <button class="btn-reset" onclick="resetSorteo()">Reiniciar sorteo</button>
+</div>
+
+<script>
+const DATOS = {"Aimar Karime Moreno Gómez (SAN GABRIEL)": [178, 188, 195], "Ale Moran": [45, 59, 64, 125, 158, 202, 245, 257, 327, 335], "Alejandra Jazmín Muñoz (PONCITLAN)": [80, 86, 139, 144, 152, 160, 193, 270, 337], "Alejandrina De Anda (Zapotiltic)": [29, 97, 111, 147, 159, 218, 292], "Alejandro Padilla Frausto (ATEQUIZA)": [1, 5, 34, 65, 92, 93, 191, 271, 281, 323, 328, 338], "Ana Karina": [73, 75, 124, 137, 171, 222, 225, 226, 237, 252], "Angelica Beatriz Prado (JIQUILPAN CH)": [19, 55, 91, 115, 324], "Araceli Castañeda (Matriz)": [238], "Arleth Ramos (USMAJAC)": [13, 36, 57, 140, 163, 211, 254, 256, 319, 320], "Brayan Alejandro Villalvazo Flores (San Gabriel)": [114, 183, 187, 216, 288, 304], "Carmen Muñoz (TECALITLAN CH)": [17, 79, 215, 228, 282, 297, 305], "Cristian Barajas (Corporativo)": [32, 38, 50, 60, 61, 108, 143, 155, 242, 333], "David": [35, 87, 89, 127, 138, 146, 161, 172, 220, 277], "Diana Teresa Orozco Guizar (COTIJA)": [3, 68, 199, 213, 249, 261], "Dianey Alejandra (USMAJAC)": [126, 136, 332], "ELIZABETH GONZALEZ (Tama CH)": [8, 15, 26, 72, 78, 107, 110, 113, 118, 119, 132, 156, 189, 212, 239, 250, 269, 276, 293, 312, 315, 316, 331], "Elsa Arellano (Tuxpan)": [265, 275], "Felicia Sánchez peña Sánchez (ATOYAC)": [76], "Francisco": [9, 43, 63, 103, 154, 197, 229, 247, 287, 309], "Hector Adrian": [2, 52, 54, 120, 179, 184, 246, 262, 302, 307], "Hector Hugo": [22, 329], "Isis Paola Rivera Rivera (Jocotepec)": [166, 285], "JENNIFER ESPINOZA(Tama RC)": [46, 90, 129, 130, 151, 162, 266, 306, 310], "Jacqueline Montcerrat Mendoza Fernandez (Santa Cruz)": [12, 40, 94, 150, 153, 164, 243, 280, 325], "Jose Luis Campos (Tecalitlan)": [16, 98, 99, 122, 157, 234, 258], "Jose Neftali": [42, 53, 85, 96, 149, 185, 207, 268, 296, 321], "José Zacarías Ponce García (TEOCUITATLAN)": [165, 259, 260, 311], "Juan Cristopher Cevero Martinez Rubio (TEOCUITATLAN)": [20, 100, 141, 232, 272, 289], "Juan Jose": [56, 70, 109, 123, 145, 217, 267, 273, 322, 330], "Judith De Anda (Zapotiltic)": [248, 274, 334], "KARLA DANIELA MUÑOZ GARCIA (PONCITLAN)": [21, 169, 174, 175, 204, 303], "Laura Elizabeth Rosas Mendoza(HUESCALAPA)": [48, 263], "Leonardo Guizar (GOMEZ FARIAS)": [83, 128, 134, 181, 240, 251, 255, 264, 278, 286, 290, 295, 318], "Lorena Matriz": [14, 28, 74, 82, 101, 104, 173, 180, 201, 284], "Lorena Patiño (Tama CH)": [25, 49, 170, 194, 206], "Luis Fernando Hernandez Montañez (ZAPOTILTIC REF)": [4, 6, 18, 31, 37, 51, 133, 148, 236, 294, 300], "Luis Moreno": [11, 41, 69, 116, 131, 142, 221, 241, 253, 283], "Marlen Flores Hernandez (Atequiza)": [7, 58, 81, 105, 112, 186, 190, 198, 200, 208, 209, 233, 291, 314], "Noemí Benítez Ramírez (TIZAPAN)": [23, 30, 117, 196, 214, 224, 227, 231, 244, 298, 301, 336], "PAOLA MAGALLON (Tama RC)": [10, 27, 33, 62, 71, 95, 102, 192, 203, 219, 230], "Paola Sánchez (San Andrés)": [84, 106, 299], "ROSARIO ARELLANO CARDENAS (Tuxpan)": [24, 44, 66, 67, 77, 88, 121, 135, 168, 176, 177, 182, 205, 210, 223, 235, 279, 308, 313, 317, 326], "SILVIA LETICIA TORRES NAVARRO (JIQUILPAN CH)": [39, 47, 167]};
+
+// Aplanar pool: {numero: nombre}
+const POOL_ORIGINAL = {};
+for (const [nombre, nums] of Object.entries(DATOS)) {
+  for (const n of nums) POOL_ORIGINAL[n] = nombre;
+}
+const TOTAL = Object.keys(POOL_ORIGINAL).length;
+
+// Detectar modo admin
+const params = new URLSearchParams(location.search);
+if (params.get('sorteo') === 'celucenter2026') {
+  document.getElementById('page-registro').style.display = 'none';
+  document.getElementById('page-sorteo').style.display = 'block';
+  initSorteo();
+}
+
+/* ─── BÚSQUEDA ─── */
+function normalizar(s) {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
+}
+
+function buscar(q) {
+  const res = document.getElementById('results');
+  if (q.trim().length < 2) { res.innerHTML = ''; return; }
+  const qn = normalizar(q);
+  const words = qn.split(' ').filter(Boolean);
+  const matches = Object.keys(DATOS).filter(nombre => {
+    const nn = normalizar(nombre);
+    return words.every(w => nn.includes(w));
+  });
+  if (!matches.length) {
+    res.innerHTML = '<div class="no-results">No encontrado — intenta con apellido o sucursal</div>';
+    return;
+  }
+  res.innerHTML = matches.map(n =>
+    `<div class="result-item" onclick="mostrarTicket(${JSON.stringify(n)})">
+      <div class="rname">${n}</div>
+      <div class="rcount">${DATOS[n].length} boleto${DATOS[n].length > 1 ? 's' : ''}</div>
+    </div>`
+  ).join('');
+}
+
+function mostrarTicket(nombre) {
+  document.getElementById('page-registro').style.display = 'none';
+  const ticket = document.getElementById('page-ticket');
+  ticket.style.display = 'block';
+  document.getElementById('tc-name').textContent = nombre;
+  const nums = DATOS[nombre];
+  document.getElementById('tc-boletos').innerHTML = nums
+    .map(n => `<div class="boleto-num">${n}</div>`).join('');
+  window.scrollTo(0,0);
+}
+
+function volverRegistro() {
+  document.getElementById('page-ticket').style.display = 'none';
+  document.getElementById('page-registro').style.display = 'block';
+}
+
+/* ─── SORTEO ─── */
+let sorteados = [];
+let intervalo = null;
+
+function initSorteo() {
+  const saved = localStorage.getItem('rifa2026_sorteados');
+  sorteados = saved ? JSON.parse(saved) : [];
+  renderSorteo();
+}
+
+function sortear() {
+  const restantes = Object.keys(POOL_ORIGINAL).map(Number).filter(n => !sorteados.includes(n));
+  if (!restantes.length) return;
+
+  const btn = document.getElementById('btn-sortear');
+  btn.disabled = true;
+  const sortNum = document.getElementById('sort-num');
+  const sortNombre = document.getElementById('sort-nombre');
+  sortNombre.textContent = '';
+
+  let t = 0;
+  const ganador = restantes[Math.floor(Math.random() * restantes.length)];
+  const pasos = 25;
+
+  intervalo = setInterval(() => {
+    const fake = restantes[Math.floor(Math.random() * restantes.length)];
+    sortNum.textContent = String(fake).padStart(3, '0');
+    t++;
+    if (t >= pasos) {
+      clearInterval(intervalo);
+      sortNum.textContent = String(ganador).padStart(3, '0');
+      sortNombre.textContent = POOL_ORIGINAL[ganador];
+      sorteados.push(ganador);
+      localStorage.setItem('rifa2026_sorteados', JSON.stringify(sorteados));
+      renderSorteo();
+      setTimeout(() => { btn.disabled = false; }, 1500);
+    }
+  }, 80);
+}
+
+function renderSorteo() {
+  const restantes = TOTAL - sorteados.length;
+  document.getElementById('sort-restantes').textContent =
+    `${restantes} boleto${restantes !== 1 ? 's' : ''} restante${restantes !== 1 ? 's' : ''} de ${TOTAL}`;
+
+  const hist = document.getElementById('historial');
+  if (sorteados.length === 0) { hist.innerHTML = ''; return; }
+  const items = [...sorteados].reverse().map((n, i) =>
+    `<div class="hist-item">
+      <span>#${sorteados.length - i} — <span class="hist-num">${String(n).padStart(3,'0')}</span></span>
+      <span style="color:#aaa">${POOL_ORIGINAL[n]}</span>
+    </div>`
+  ).join('');
+  hist.innerHTML = `<h3>Números sorteados (${sorteados.length})</h3>${items}`;
+
+  if (sorteados.length === TOTAL) {
+    document.getElementById('btn-sortear').textContent = '✅ Rifa completada';
+    document.getElementById('btn-sortear').disabled = true;
+  }
+}
+
+function resetSorteo() {
+  if (!confirm('¿Reiniciar el sorteo? Se borrarán todos los números sorteados.')) return;
+  sorteados = [];
+  localStorage.removeItem('rifa2026_sorteados');
+  document.getElementById('sort-num').textContent = '—';
+  document.getElementById('sort-nombre').textContent = '';
+  document.getElementById('btn-sortear').disabled = false;
+  document.getElementById('btn-sortear').textContent = '🎯 SORTEAR';
+  renderSorteo();
+}
+</script>
+
+</body>
+</html>
