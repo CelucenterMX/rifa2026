@@ -43,6 +43,23 @@
                 font-size: 0.9rem; }
   .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
 
+  /* CONFIRMACIÓN */
+  #page-confirm { display: none; padding: 24px 20px; max-width: 480px; margin: 0 auto; text-align: center; }
+  .confirm-card { background: #1a1a1a; border: 2px solid #333; border-radius: 20px; padding: 32px 20px; }
+  .confirm-card .conf-q { color: #888; font-size: 0.95rem; margin-bottom: 10px; }
+  .confirm-card .conf-name { font-size: 1.3rem; font-weight: 800; color: #FFD700; margin-bottom: 8px; }
+  .confirm-card .conf-boletos { color: #aaa; font-size: 0.85rem; margin-bottom: 28px; }
+  .btn-confirm { background: #FFD700; color: #111; font-size: 1rem; font-weight: 800;
+                 padding: 14px 32px; border-radius: 50px; border: none; cursor: pointer;
+                 width: 100%; margin-bottom: 12px; transition: opacity .2s; }
+  .btn-confirm:hover { opacity: 0.9; }
+  .btn-confirm:disabled { background: #444; color: #666; cursor: not-allowed; }
+  .conf-loading { color: #888; font-size: 0.9rem; margin: 8px 0; display: none; }
+  .badge-ok   { background: #1a3a1a; border: 1px solid #2d7a2d; color: #5dbb5d;
+                border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; margin-bottom: 12px; display: none; }
+  .badge-dup  { background: #2a2a1a; border: 1px solid #7a7a2d; color: #cccc5d;
+                border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; margin-bottom: 12px; display: none; }
+
   /* SORTEO */
   #page-sorteo { display: none; padding: 20px; max-width: 700px; margin: 0 auto; text-align: center; }
   .sorteo-display { background: #1a1a1a; border: 3px solid #FFD700; border-radius: 24px;
@@ -95,9 +112,24 @@
   <div class="results" id="results"></div>
 </div>
 
+<!-- PÁGINA CONFIRMACIÓN -->
+<div id="page-confirm">
+  <div class="confirm-card">
+    <div class="conf-q">¿Eres tú?</div>
+    <div class="conf-name" id="conf-name"></div>
+    <div class="conf-boletos" id="conf-boletos"></div>
+    <div class="badge-ok"  id="badge-ok">✅ ¡Registro exitoso!</div>
+    <div class="badge-dup" id="badge-dup">⚠️ Ya estabas registrado anteriormente</div>
+    <div class="conf-loading" id="conf-loading">Registrando asistencia…</div>
+    <button class="btn-confirm" id="btn-confirm" onclick="confirmarRegistro()">Sí, soy yo ✓</button>
+    <button class="btn-volver" onclick="volverDesdeConfirm()">← Volver a buscar</button>
+  </div>
+</div>
+
 <!-- PÁGINA TICKET -->
 <div id="page-ticket">
   <div class="ticket-card">
+    <div id="tc-status"></div>
     <div class="tc-name" id="tc-name"></div>
     <div class="tc-sub">Tus boletos para la rifa</div>
     <div class="boletos-grid" id="tc-boletos"></div>
@@ -166,16 +198,76 @@ function buscar(q) {
   ).join('');
 }
 
+let pendingNombre = '';
+
 function mostrarTicket(idx) {
-  const nombre = currentResults[idx];
+  pendingNombre = currentResults[idx];
+  const nums = DATOS[pendingNombre];
   document.getElementById('page-registro').style.display = 'none';
+  document.getElementById('conf-name').textContent = pendingNombre;
+  document.getElementById('conf-boletos').textContent =
+    `${nums.length} boleto${nums.length > 1 ? 's' : ''} asignado${nums.length > 1 ? 's' : ''}`;
+  document.getElementById('badge-ok').style.display  = 'none';
+  document.getElementById('badge-dup').style.display = 'none';
+  document.getElementById('conf-loading').style.display = 'none';
+  document.getElementById('btn-confirm').disabled = false;
+  document.getElementById('btn-confirm').textContent = 'Sí, soy yo ✓';
+  document.getElementById('page-confirm').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function confirmarRegistro() {
+  const nombre = pendingNombre;
+  const btn = document.getElementById('btn-confirm');
+  btn.disabled = true;
+  btn.textContent = 'Registrando…';
+  document.getElementById('conf-loading').style.display = 'block';
+
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzG0kTigY9tC-bWNi4Gb3nCuYQEj_cQ6bpgWBGtl0HZimPB1O1DI0_B1TaLko7WS2t7/exec';
+  const cbName = 'gasCallback_' + Date.now();
+  const timeoutId = setTimeout(() => mostrarBoletos(nombre, null), 6000);
+
+  window[cbName] = function(data) {
+    clearTimeout(timeoutId);
+    delete window[cbName];
+    mostrarBoletos(nombre, data);
+  };
+
+  const s = document.createElement('script');
+  s.onerror = () => { clearTimeout(timeoutId); mostrarBoletos(nombre, null); };
+  s.src = GAS_URL + '?nombre=' + encodeURIComponent(nombre) +
+          '&callback=' + cbName +
+          '&device=' + encodeURIComponent(navigator.userAgent.substring(0, 60));
+  document.head.appendChild(s);
+}
+
+function mostrarBoletos(nombre, gasData) {
+  document.getElementById('page-confirm').style.display = 'none';
   const ticket = document.getElementById('page-ticket');
   ticket.style.display = 'block';
   document.getElementById('tc-name').textContent = nombre;
   const nums = DATOS[nombre];
   document.getElementById('tc-boletos').innerHTML = nums
     .map(n => `<div class="boleto-num">${n}</div>`).join('');
-  window.scrollTo(0,0);
+  // Mostrar badge según respuesta GAS
+  const badgeOk  = ticket.querySelector ? null : null; // acceso directo abajo
+  if (gasData) {
+    if (gasData.yaRegistrado) {
+      ticket.querySelector('#tc-status').innerHTML =
+        '<div style="background:#2a2a1a;border:1px solid #7a7a2d;color:#cccc5d;border-radius:8px;padding:8px 14px;font-size:.85rem;margin-bottom:12px">⚠️ Ya estabas registrado anteriormente</div>';
+    } else {
+      ticket.querySelector('#tc-status').innerHTML =
+        '<div style="background:#1a3a1a;border:1px solid #2d7a2d;color:#5dbb5d;border-radius:8px;padding:8px 14px;font-size:.85rem;margin-bottom:12px">✅ ¡Registro exitoso! Asistencia marcada.</div>';
+    }
+  } else {
+    ticket.querySelector('#tc-status').innerHTML = '';
+  }
+  window.scrollTo(0, 0);
+}
+
+function volverDesdeConfirm() {
+  document.getElementById('page-confirm').style.display = 'none';
+  document.getElementById('page-registro').style.display = 'block';
 }
 
 function volverRegistro() {
