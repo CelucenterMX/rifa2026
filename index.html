@@ -193,6 +193,12 @@ if (params.get('sorteo') === 'celucenter2026') {
   document.getElementById('page-admin').style.display = 'block';
   cargarAsistencia();
   setInterval(cargarAsistencia, 15000);
+} else {
+  // Ver si ya se registró antes
+  const yaRegistrado = localStorage.getItem('rifa2026_nombre');
+  if (yaRegistrado && DATOS[yaRegistrado]) {
+    mostrarBoletosDirecto(yaRegistrado);
+  }
 }
 
 /* ─── BÚSQUEDA ─── */
@@ -211,8 +217,10 @@ function buscar(q) {
     const nn = normalizar(nombre);
     return words.every(w => nn.includes(w));
   });
+  const btnNoEstoy = '<div style="margin-top:20px; text-align:center;"><button onclick="noEstoyEnLista()" style="background:transparent; border:1px solid #555; color:#888; padding:10px 24px; border-radius:20px; cursor:pointer; font-size:0.85rem;">No estoy en la lista</button></div>';
+
   if (!currentResults.length) {
-    res.innerHTML = '<div class="no-results">No encontrado — intenta con apellido o sucursal</div>';
+    res.innerHTML = '<div class="no-results">No encontrado — intenta con apellido o sucursal</div>' + btnNoEstoy;
     return;
   }
   res.innerHTML = currentResults.map((n, i) =>
@@ -220,7 +228,15 @@ function buscar(q) {
       <div class="rname">${n}</div>
       <div class="rcount">${DATOS[n].length} boleto${DATOS[n].length > 1 ? 's' : ''}</div>
     </div>`
-  ).join('');
+  ).join('') + btnNoEstoy;
+}
+
+function noEstoyEnLista() {
+  document.getElementById('results').innerHTML =
+    '<div style="background:#1a1a1a; border:1px solid #444; border-radius:12px; padding:20px; text-align:center; margin-top:8px;">' +
+    '<div style="font-size:1.1rem; margin-bottom:8px;">⚠️ Avísale al organizador</div>' +
+    '<div style="color:#888; font-size:0.85rem;">Tu nombre no está registrado en el sistema. Acércate con Cristian para que te agreguen.</div>' +
+    '</div>';
 }
 
 let pendingNombre = '';
@@ -265,7 +281,21 @@ function confirmarRegistro() {
   document.head.appendChild(s);
 }
 
+function mostrarBoletosDirecto(nombre) {
+  document.getElementById('page-registro').style.display = 'none';
+  const ticket = document.getElementById('page-ticket');
+  ticket.style.display = 'block';
+  document.getElementById('tc-name').textContent = nombre;
+  const nums = DATOS[nombre];
+  document.getElementById('tc-boletos').innerHTML = nums.map(n => `<div class="boleto-num">${n}</div>`).join('');
+  document.getElementById('tc-status').innerHTML =
+    '<div style="background:#1a2a3a;border:1px solid #2d5a7a;color:#5daacc;border-radius:8px;padding:8px 14px;font-size:.85rem;margin-bottom:12px">👋 ¡Ya estás registrado! Estos son tus boletos.</div>';
+  window.scrollTo(0, 0);
+}
+
 function mostrarBoletos(nombre, gasData) {
+  // Guardar en localStorage para próximas visitas
+  localStorage.setItem('rifa2026_nombre', nombre);
   document.getElementById('page-confirm').style.display = 'none';
   const ticket = document.getElementById('page-ticket');
   ticket.style.display = 'block';
@@ -295,6 +325,7 @@ function volverDesdeConfirm() {
 }
 
 function volverRegistro() {
+  localStorage.removeItem('rifa2026_nombre');
   document.getElementById('page-ticket').style.display = 'none';
   document.getElementById('page-registro').style.display = 'block';
 }
