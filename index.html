@@ -140,6 +140,24 @@
   <button class="btn-volver" onclick="volverRegistro()">← Volver a buscar</button>
 </div>
 
+<!-- PÁGINA ADMIN ASISTENCIA -->
+<div id="page-admin" style="display:none; padding:20px; max-width:700px; margin:0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <div>
+      <div style="color:#FFD700; font-size:1.3rem; font-weight:800;">Lista de Asistencia</div>
+      <div style="color:#888; font-size:0.85rem;" id="admin-ultima">Cargando...</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:2rem; font-weight:900; color:#FFD700;" id="admin-count">—</div>
+      <div style="color:#888; font-size:0.8rem;">de 43 registrados</div>
+    </div>
+  </div>
+  <div id="admin-lista" style="display:flex; flex-direction:column; gap:8px;"></div>
+  <div style="margin-top:16px; text-align:center;">
+    <button onclick="cargarAsistencia()" style="background:transparent; border:1px solid #444; color:#aaa; padding:8px 20px; border-radius:20px; cursor:pointer; font-size:0.85rem;">🔄 Actualizar ahora</button>
+  </div>
+</div>
+
 <!-- PÁGINA SORTEO (admin) -->
 <div id="page-sorteo">
   <div class="sorteo-display">
@@ -162,12 +180,17 @@ for (const [nombre, nums] of Object.entries(DATOS)) {
 }
 const TOTAL = Object.keys(POOL_ORIGINAL).length;
 
-// Detectar modo admin
+// Detectar modo
 const params = new URLSearchParams(location.search);
 if (params.get('sorteo') === 'celucenter2026') {
   document.getElementById('page-registro').style.display = 'none';
   document.getElementById('page-sorteo').style.display = 'block';
   initSorteo();
+} else if (params.get('admin') === 'celucenter2026') {
+  document.getElementById('page-registro').style.display = 'none';
+  document.getElementById('page-admin').style.display = 'block';
+  cargarAsistencia();
+  setInterval(cargarAsistencia, 15000);
 }
 
 /* ─── BÚSQUEDA ─── */
@@ -223,7 +246,6 @@ function confirmarRegistro() {
   btn.textContent = 'Registrando…';
   document.getElementById('conf-loading').style.display = 'block';
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzG0kTigY9tC-bWNi4Gb3nCuYQEj_cQ6bpgWBGtl0HZimPB1O1DI0_B1TaLko7WS2t7/exec';
   const cbName = 'gasCallback_' + Date.now();
   const timeoutId = setTimeout(() => mostrarBoletos(nombre, null), 6000);
 
@@ -273,6 +295,51 @@ function volverDesdeConfirm() {
 function volverRegistro() {
   document.getElementById('page-ticket').style.display = 'none';
   document.getElementById('page-registro').style.display = 'block';
+}
+
+/* ─── ADMIN ASISTENCIA ─── */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzG0kTigY9tC-bWNi4Gb3nCuYQEj_cQ6bpgWBGtl0HZimPB1O1DI0_B1TaLko7WS2t7/exec';
+
+function cargarAsistencia() {
+  const cbName = 'adminCallback_' + Date.now();
+  const timeoutId = setTimeout(() => {
+    delete window[cbName];
+    document.getElementById('admin-ultima').textContent = 'Error al cargar — reintentando...';
+  }, 8000);
+
+  window[cbName] = function(data) {
+    clearTimeout(timeoutId);
+    delete window[cbName];
+    if (!data || !data.registros) return;
+    renderAsistencia(data.registros);
+  };
+
+  const s = document.createElement('script');
+  s.src = GAS_URL + '?action=list&callback=' + cbName;
+  s.onerror = () => { clearTimeout(timeoutId); };
+  document.head.appendChild(s);
+}
+
+function renderAsistencia(registros) {
+  const count = registros.length;
+  document.getElementById('admin-count').textContent = count;
+  const ahora = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  document.getElementById('admin-ultima').textContent = 'Última actualización: ' + ahora;
+
+  const lista = document.getElementById('admin-lista');
+  if (count === 0) {
+    lista.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Sin registros aún</div>';
+    return;
+  }
+  lista.innerHTML = registros.map((r, i) =>
+    `<div style="background:#1a1a1a; border:1px solid #333; border-radius:10px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <span style="color:#FFD700; font-weight:700; margin-right:8px;">${i + 1}.</span>
+        <span style="font-size:0.95rem;">${r.nombre}</span>
+      </div>
+      <div style="color:#888; font-size:0.8rem;">${r.hora}</div>
+    </div>`
+  ).join('');
 }
 
 /* ─── SORTEO ─── */
