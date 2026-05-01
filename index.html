@@ -347,10 +347,21 @@ function cargarAsistencia() {
   document.head.appendChild(s);
 }
 
+function formatHora(h) {
+  if (!h) return '';
+  const d = new Date(h);
+  if (isNaN(d)) return h;
+  return d.toLocaleString('es-MX', {
+    timeZone: 'America/Mexico_City',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+}
+
 function renderAsistencia(registros) {
   const count = registros.length;
   document.getElementById('admin-count').textContent = count;
-  const ahora = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  const ahora = new Date().toLocaleTimeString('es-MX', {timeZone:'America/Mexico_City', hour:'2-digit', minute:'2-digit', second:'2-digit'});
   document.getElementById('admin-ultima').textContent = 'Última actualización: ' + ahora;
 
   const lista = document.getElementById('admin-lista');
@@ -364,7 +375,7 @@ function renderAsistencia(registros) {
         <span style="color:#2aabd2; font-weight:700; margin-right:8px;">${i + 1}.</span>
         <span style="font-size:0.95rem; color:#111;">${r.nombre}</span>
       </div>
-      <div style="color:#888; font-size:0.8rem;">${r.hora}</div>
+      <div style="color:#888; font-size:0.8rem;">${formatHora(r.hora)}</div>
     </div>`
   ).join('');
 }
